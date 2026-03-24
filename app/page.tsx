@@ -8,7 +8,7 @@ const STEP_META: Record<string, { icon: string; desc: string }> = {
     analysis: { icon: '1', desc: '深入分析岗位本质、能力模型与人才画像' },
     benchmark: { icon: '2', desc: '对标行业头部公司的类似岗位设置' },
     reasoning: { icon: '3', desc: '从痛点出发推导职责、要求与加分项' },
-    output: { icon: '4', desc: '输出结构化的最终JD' },
+    output: { icon: '4', desc: '输出结构化JD' },
 };
 
 const STEPS_ORDER = ['analysis', 'benchmark', 'reasoning', 'output'] as const;
