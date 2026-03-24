@@ -4,11 +4,11 @@ import { useState, useRef, useCallback } from 'react';
 import { generateJobDescription, GenerationStep, JDFormData } from '../utils/openai';
 import { Toaster, toast } from 'react-hot-toast';
 
-const STEP_META: Record<string, { icon: string; desc: string }> = {
-    analysis: { icon: '1', desc: '深入分析岗位本质、能力模型与人才画像' },
-    benchmark: { icon: '2', desc: '对标行业头部公司的类似岗位设置' },
-    reasoning: { icon: '3', desc: '从痛点出发推导职责、要求与加分项' },
-    output: { icon: '4', desc: '输出结构化JD' },
+const STEP_META: Record<string, { label: string; desc: string }> = {
+    analysis: { label: '需求分析', desc: '深入分析岗位本质、能力模型与人才画像' },
+    benchmark: { label: '行业对标', desc: '对标行业头部公司的类似岗位设置' },
+    reasoning: { label: 'JD推演', desc: '从痛点出发推导职责、要求与加分项' },
+    output: { label: '输出JD', desc: '输出结构化JD' },
 };
 
 const STEPS_ORDER = ['analysis', 'benchmark', 'reasoning', 'output'] as const;
@@ -282,9 +282,9 @@ export default function Home() {
                                                         ${isGenerating ? 'bg-[#b3a08d] text-white animate-pulse' : ''}
                                                         ${!isDone && !isGenerating ? 'bg-stone-200 text-stone-400' : ''}
                                                     `}>
-                                                        {isDone ? '\u2713' : meta.icon}
+                                                        {isDone ? '\u2713' : idx + 1}
                                                     </span>
-                                                    <span className="truncate">{meta.desc.slice(0, 7)}</span>
+                                                    <span>{meta.label}</span>
                                                 </button>
                                                 {idx < STEPS_ORDER.length - 1 && (
                                                     <div className={`w-4 h-0.5 flex-shrink-0 ${isDone ? 'bg-green-300' : 'bg-stone-200'}`} />
