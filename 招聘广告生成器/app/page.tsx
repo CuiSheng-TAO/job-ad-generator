@@ -114,11 +114,11 @@ export default function Home() {
                     AI-Powered Job Description Reasoning Engine
                 </p>
 
-                <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100">
-                    <div className="flex flex-col lg:flex-row overflow-hidden">
+                <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100 max-h-[85vh]">
+                    <div className="flex flex-col lg:flex-row h-full">
 
                         {/* Left Column: Input Form - no scroll, full height */}
-                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:w-1/3 flex-shrink-0">
+                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:w-1/3 flex-shrink-0 overflow-y-auto">
                             <h2 className="text-2xl font-bold text-stone-800 mb-6 flex items-center">
                                 <span className="mr-2 text-xl">&#9998;</span> 岗位信息
                             </h2>
@@ -284,7 +284,7 @@ export default function Home() {
                                                     `}>
                                                         {isDone ? '\u2713' : meta.icon}
                                                     </span>
-                                                    <span className="truncate">{meta.desc.slice(0, 6)}</span>
+                                                    <span className="truncate">{meta.desc.slice(0, 7)}</span>
                                                 </button>
                                                 {idx < STEPS_ORDER.length - 1 && (
                                                     <div className={`w-4 h-0.5 flex-shrink-0 ${isDone ? 'bg-green-300' : 'bg-stone-200'}`} />
