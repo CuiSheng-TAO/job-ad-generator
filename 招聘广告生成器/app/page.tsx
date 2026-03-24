@@ -114,7 +114,7 @@ export default function Home() {
                     AI-Powered Job Description Reasoning Engine
                 </p>
 
-                <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100 max-h-[85vh]">
+                <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100 h-[85vh]">
                     <div className="flex flex-col lg:flex-row h-full">
 
                         {/* Left Column: Input Form - no scroll, full height */}
