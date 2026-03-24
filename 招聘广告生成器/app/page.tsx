@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { generateJobDescription, GenerationStep, JDFormData } from '../utils/openai';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -16,8 +16,12 @@ const STEPS_ORDER = ['analysis', 'benchmark', 'reasoning', 'output'] as const;
 export default function Home() {
     const [loading, setLoading] = useState(false);
     const [steps, setSteps] = useState<GenerationStep[]>([]);
-    const [activeStepId, setActiveStepId] = useState<string | null>(null);
+    const [viewingStepId, setViewingStepId] = useState<string | null>(null);
     const [finalJD, setFinalJD] = useState('');
+    // Track which step is currently being generated
+    const currentGeneratingStepRef = useRef<string | null>(null);
+    // Track if user has manually selected a step
+    const userSelectedRef = useRef(false);
 
     const [formData, setFormData] = useState<JDFormData>({
         jobTitle: '',
@@ -33,16 +37,22 @@ export default function Home() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleStepClick = useCallback((stepId: string) => {
+        userSelectedRef.current = true;
+        setViewingStepId(stepId);
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setSteps([]);
         setFinalJD('');
-        setActiveStepId('analysis');
+        setViewingStepId('analysis');
+        userSelectedRef.current = false;
+        currentGeneratingStepRef.current = 'analysis';
 
         try {
             const jd = await generateJobDescription(formData, (step) => {
-                setActiveStepId(step.content ? null : step.id);
                 setSteps((prev) => {
                     const existing = prev.findIndex((s) => s.id === step.id);
                     if (existing >= 0) {
@@ -52,28 +62,45 @@ export default function Home() {
                     }
                     return [...prev, step];
                 });
-                // When a step completes, auto-set active to next pending
-                if (step.content) {
+
+                currentGeneratingStepRef.current = step.done ? null : step.id;
+
+                // Auto-switch to new step only if user hasn't manually selected
+                if (!userSelectedRef.current) {
+                    setViewingStepId(step.id);
+                }
+
+                // When a step completes, if user is viewing it, auto-advance to next
+                if (step.done) {
                     const idx = STEPS_ORDER.indexOf(step.id as typeof STEPS_ORDER[number]);
                     if (idx < STEPS_ORDER.length - 1) {
-                        setActiveStepId(STEPS_ORDER[idx + 1]);
+                        const nextId = STEPS_ORDER[idx + 1];
+                        if (!userSelectedRef.current) {
+                            setViewingStepId(nextId);
+                        }
+                        currentGeneratingStepRef.current = nextId;
+                    }
+                    // Reset user selection when a new step starts
+                    // so auto-follow resumes for the next step
+                    if (!userSelectedRef.current) {
+                        userSelectedRef.current = false;
                     }
                 }
             });
             setFinalJD(jd || '');
-            setActiveStepId(null);
+            setViewingStepId('output');
+            userSelectedRef.current = false;
             toast.success('JD生成完成！');
         } catch (error) {
             toast.error('生成出错，请检查网络后重试');
             console.error(error);
-            setActiveStepId(null);
         } finally {
             setLoading(false);
+            currentGeneratingStepRef.current = null;
         }
     };
 
-    const completedSteps = steps.filter((s) => s.content);
-    const viewingStep = steps.find((s) => s.id === activeStepId) || (completedSteps.length > 0 ? completedSteps[completedSteps.length - 1] : null);
+    const viewingStep = steps.find((s) => s.id === viewingStepId) || null;
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen py-10 px-4 bg-[#fdfaf3]">
@@ -90,8 +117,8 @@ export default function Home() {
                 <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100">
                     <div className="grid grid-cols-1 lg:grid-cols-3">
 
-                        {/* Left Column: Input Form */}
-                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:col-span-1 max-h-[85vh] overflow-y-auto">
+                        {/* Left Column: Input Form - no scroll, full height */}
+                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:col-span-1">
                             <h2 className="text-2xl font-bold text-stone-800 mb-6 flex items-center">
                                 <span className="mr-2 text-xl">&#9998;</span> 岗位信息
                             </h2>
@@ -226,39 +253,41 @@ export default function Home() {
                             </form>
                         </div>
 
-                        {/* Right Column: Steps & Output */}
-                        <div className="p-8 bg-white min-h-[85vh] flex flex-col lg:col-span-2">
+                        {/* Right Column: Steps & Output - matches left height, content scrolls */}
+                        <div className="p-8 bg-white flex flex-col lg:col-span-2">
 
                             {/* Step Progress Bar */}
                             {(steps.length > 0 || loading) && (
                                 <div className="flex items-center mb-6 gap-2">
                                     {STEPS_ORDER.map((stepId, idx) => {
                                         const step = steps.find((s) => s.id === stepId);
-                                        const isComplete = step?.content;
-                                        const isActive = activeStepId === stepId;
+                                        const isDone = step?.done;
+                                        const isGenerating = currentGeneratingStepRef.current === stepId && !isDone;
+                                        const isViewing = viewingStepId === stepId;
+                                        const hasContent = !!step?.content;
                                         const meta = STEP_META[stepId];
                                         return (
                                             <div key={stepId} className="flex items-center flex-1">
                                                 <button
-                                                    onClick={() => { if (step?.content) setActiveStepId(stepId); }}
+                                                    onClick={() => { if (hasContent) handleStepClick(stepId); }}
                                                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all w-full
-                                                        ${isActive ? 'bg-[#b3a08d] text-white shadow-md' : ''}
-                                                        ${isComplete && !isActive ? 'bg-stone-100 text-stone-700 hover:bg-stone-200 cursor-pointer' : ''}
-                                                        ${!isComplete && !isActive ? 'bg-stone-50 text-stone-300' : ''}
+                                                        ${isViewing ? 'bg-[#b3a08d] text-white shadow-md' : ''}
+                                                        ${hasContent && !isViewing ? 'bg-stone-100 text-stone-700 hover:bg-stone-200 cursor-pointer' : ''}
+                                                        ${!hasContent && !isViewing ? 'bg-stone-50 text-stone-300' : ''}
                                                     `}
-                                                    disabled={!isComplete}
+                                                    disabled={!hasContent}
                                                 >
                                                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
-                                                        ${isComplete ? 'bg-green-500 text-white' : ''}
-                                                        ${isActive && !isComplete ? 'bg-white text-[#b3a08d] animate-pulse' : ''}
-                                                        ${!isComplete && !isActive ? 'bg-stone-200 text-stone-400' : ''}
+                                                        ${isDone ? 'bg-green-500 text-white' : ''}
+                                                        ${isGenerating ? 'bg-[#b3a08d] text-white animate-pulse' : ''}
+                                                        ${!isDone && !isGenerating ? 'bg-stone-200 text-stone-400' : ''}
                                                     `}>
-                                                        {isComplete ? '\u2713' : meta.icon}
+                                                        {isDone ? '\u2713' : meta.icon}
                                                     </span>
-                                                    <span className="truncate">{STEP_META[stepId].desc.slice(0, 6)}</span>
+                                                    <span className="truncate">{meta.desc.slice(0, 6)}</span>
                                                 </button>
                                                 {idx < STEPS_ORDER.length - 1 && (
-                                                    <div className={`w-4 h-0.5 flex-shrink-0 ${isComplete ? 'bg-green-300' : 'bg-stone-200'}`} />
+                                                    <div className={`w-4 h-0.5 flex-shrink-0 ${isDone ? 'bg-green-300' : 'bg-stone-200'}`} />
                                                 )}
                                             </div>
                                         );
@@ -266,8 +295,8 @@ export default function Home() {
                                 </div>
                             )}
 
-                            {/* Content Area */}
-                            <div className="flex-1 bg-[#fdfaf3] border border-stone-200 rounded-xl overflow-hidden shadow-inner flex flex-col">
+                            {/* Content Area - scrollable */}
+                            <div className="flex-1 bg-[#fdfaf3] border border-stone-200 rounded-xl shadow-inner flex flex-col min-h-0 overflow-hidden">
                                 {steps.length === 0 && !loading ? (
                                     <div className="h-full w-full flex flex-col items-center justify-center text-stone-400 p-8">
                                         <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -277,19 +306,30 @@ export default function Home() {
                                         <p className="text-sm text-stone-300">AI将通过 需求分析 &rarr; 行业对标 &rarr; JD推演 &rarr; 最终输出 四个步骤生成高质量JD</p>
                                     </div>
                                 ) : viewingStep ? (
-                                    <div className="flex flex-col h-full">
-                                        <div className="px-6 py-4 border-b border-stone-200 bg-white/50 flex items-center justify-between">
+                                    <div className="flex flex-col h-full min-h-0">
+                                        <div className="px-6 py-4 border-b border-stone-200 bg-white/50 flex items-center justify-between flex-shrink-0">
                                             <div>
                                                 <h3 className="font-bold text-stone-800 text-lg">
                                                     {viewingStep.title}
                                                 </h3>
                                                 <p className="text-sm text-stone-400">{STEP_META[viewingStep.id]?.desc}</p>
                                             </div>
-                                            {viewingStep.id !== 'output' && viewingStep.content && (
-                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">已完成</span>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {viewingStep.done && viewingStep.id !== 'output' && (
+                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">已完成</span>
+                                                )}
+                                                {!viewingStep.done && viewingStep.content && (
+                                                    <span className="text-xs bg-amber-100 text-amber-600 px-2 py-1 rounded-full flex items-center gap-1">
+                                                        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        生成中
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex-1 overflow-y-auto p-6">
+                                        <div className="flex-1 overflow-y-auto p-6 min-h-0">
                                             {viewingStep.content ? (
                                                 <div className="text-stone-800 leading-relaxed whitespace-pre-wrap text-[15px]">
                                                     {viewingStep.content}
@@ -311,9 +351,9 @@ export default function Home() {
 
                             {/* Copy Button for final JD */}
                             {finalJD && (
-                                <div className="mt-4 flex gap-3">
+                                <div className="mt-4 flex gap-3 flex-shrink-0">
                                     <button
-                                        onClick={() => setActiveStepId('output')}
+                                        onClick={() => { userSelectedRef.current = true; setViewingStepId('output'); }}
                                         className="flex-1 py-3 bg-[#b3a08d] hover:bg-[#a3907d] text-white font-medium rounded-lg transition-colors"
                                     >
                                         查看最终JD
