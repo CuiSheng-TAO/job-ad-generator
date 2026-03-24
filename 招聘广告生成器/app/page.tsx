@@ -1,148 +1,210 @@
 'use client';
 
 import { useState } from 'react';
-import { generateJobDescription } from '../utils/openai';
+import { generateJobDescription, GenerationStep, JDFormData } from '../utils/openai';
 import { Toaster, toast } from 'react-hot-toast';
+
+const STEP_META: Record<string, { icon: string; desc: string }> = {
+    analysis: { icon: '1', desc: '深入分析岗位本质、能力模型与人才画像' },
+    benchmark: { icon: '2', desc: '对标行业头部公司的类似岗位设置' },
+    reasoning: { icon: '3', desc: '从痛点出发推导职责、要求与加分项' },
+    output: { icon: '4', desc: '输出结构化的最终JD' },
+};
+
+const STEPS_ORDER = ['analysis', 'benchmark', 'reasoning', 'output'] as const;
 
 export default function Home() {
     const [loading, setLoading] = useState(false);
-    const [jobDescription, setJobDescription] = useState('');
+    const [steps, setSteps] = useState<GenerationStep[]>([]);
+    const [activeStepId, setActiveStepId] = useState<string | null>(null);
+    const [finalJD, setFinalJD] = useState('');
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<JDFormData>({
         jobTitle: '',
         industry: '',
         companyProfile: '',
         keyWords: '',
-        tone: '',
-        numWords: 200,
+        painPoints: '',
+        teamStatus: '',
+        referenceCompanies: '',
     });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         setLoading(true);
+        setSteps([]);
+        setFinalJD('');
+        setActiveStepId('analysis');
+
         try {
-            const jd = await generateJobDescription(formData);
-            setJobDescription(jd || '生成失败，请重试');
-            toast.success('生成成功！');
+            const jd = await generateJobDescription(formData, (step) => {
+                setActiveStepId(step.content ? null : step.id);
+                setSteps((prev) => {
+                    const existing = prev.findIndex((s) => s.id === step.id);
+                    if (existing >= 0) {
+                        const updated = [...prev];
+                        updated[existing] = step;
+                        return updated;
+                    }
+                    return [...prev, step];
+                });
+                // When a step completes, auto-set active to next pending
+                if (step.content) {
+                    const idx = STEPS_ORDER.indexOf(step.id as typeof STEPS_ORDER[number]);
+                    if (idx < STEPS_ORDER.length - 1) {
+                        setActiveStepId(STEPS_ORDER[idx + 1]);
+                    }
+                }
+            });
+            setFinalJD(jd || '');
+            setActiveStepId(null);
+            toast.success('JD生成完成！');
         } catch (error) {
-            toast.error('生成出错，请检查 API Key 或网络');
+            toast.error('生成出错，请检查网络后重试');
             console.error(error);
+            setActiveStepId(null);
         } finally {
             setLoading(false);
         }
     };
 
+    const completedSteps = steps.filter((s) => s.content);
+    const viewingStep = steps.find((s) => s.id === activeStepId) || (completedSteps.length > 0 ? completedSteps[completedSteps.length - 1] : null);
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen py-10 px-4 bg-[#fdfaf3]">
             <Toaster position="top-center" />
 
-            <main className="flex flex-col items-center w-full max-w-7xl space-to-y-8">
+            <main className="flex flex-col items-center w-full max-w-7xl">
                 <h1 className="text-5xl font-bold text-stone-800 mb-2 font-kaiti">
-                    招聘广告<span className="text-[#b3a08d]">生成器</span>
+                    招聘JD<span className="text-[#b3a08d]">推演器</span>
                 </h1>
                 <p className="text-xl text-stone-600 mb-10 font-serif italic">
-                    Generate Job Description Faster with AI
+                    AI-Powered Job Description Reasoning Engine
                 </p>
 
                 <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100">
-                    <div className="grid grid-cols-1 md:grid-cols-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-3">
 
-                        {/* Left Column: Input Form (1/3) */}
-                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 md:col-span-1">
+                        {/* Left Column: Input Form */}
+                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:col-span-1 max-h-[85vh] overflow-y-auto">
                             <h2 className="text-2xl font-bold text-stone-800 mb-6 flex items-center">
-                                <span className="mr-2">📥</span> 输入指令
+                                <span className="mr-2 text-xl">&#9998;</span> 岗位信息
                             </h2>
-                            <form onSubmit={handleSubmit} className="space-y-6">
+                            <form onSubmit={handleSubmit} className="space-y-5">
 
-
-
-                                <div>
-                                    <label className="block text-lg font-medium text-slate-800 mb-2">职位名称</label>
+                                <FormField
+                                    label="职位名称"
+                                    required
+                                    importance="high"
+                                    hint="将直接决定JD的方向和定位"
+                                >
                                     <input
                                         type="text"
                                         name="jobTitle"
                                         value={formData.jobTitle}
                                         onChange={handleChange}
-                                        placeholder="例如：高级前端工程师"
-                                        className="w-full px-4 py-3 bg-white border border-stone-300 rounded-lg text-stone-900 focus:ring-2 focus:ring-stone-400 focus:border-transparent transition-all"
+                                        placeholder="例如：运营专家、高级前端工程师"
+                                        className="form-input"
                                         required
                                     />
-                                </div>
+                                </FormField>
 
-                                <div>
-                                    <label className="block text-lg font-medium text-slate-800 mb-2">所属行业/公司</label>
+                                <FormField
+                                    label="所属行业/公司"
+                                    required
+                                    importance="high"
+                                    hint="帮助AI进行精准的行业对标分析"
+                                >
                                     <input
                                         type="text"
                                         name="industry"
                                         value={formData.industry}
                                         onChange={handleChange}
-                                        placeholder="例如：互联网科技公司"
-                                        className="w-full px-4 py-3 bg-white border border-stone-300 rounded-lg text-stone-900 focus:ring-2 focus:ring-stone-400 focus:border-transparent transition-all"
+                                        placeholder="例如：AI SaaS公司、互联网教育"
+                                        className="form-input"
                                         required
                                     />
-                                </div>
+                                </FormField>
 
-                                <div>
-                                    <label className="block text-lg font-medium text-slate-800 mb-2">公司简介 (可选)</label>
+                                <FormField
+                                    label="业务痛点 / 招聘背景"
+                                    importance="high"
+                                    hint="核心输入 - 直接影响JD职责的针对性"
+                                >
                                     <textarea
-                                        name="companyProfile"
-                                        value={formData.companyProfile}
+                                        name="painPoints"
+                                        value={formData.painPoints}
                                         onChange={handleChange}
-                                        placeholder="简要描述公司的企业文化、使命或规模..."
+                                        placeholder="例如：运营能力薄弱，用户付费率和留存率偏低；客服体系缺失，大客户服务跟不上..."
                                         rows={3}
-                                        className="w-full px-4 py-3 bg-white border border-stone-300 rounded-lg text-stone-900 focus:ring-2 focus:ring-stone-400 focus:border-transparent transition-all resize-none"
+                                        className="form-input resize-none"
                                     />
-                                </div>
+                                </FormField>
 
-                                <div>
-                                    <label className="block text-lg font-medium text-slate-800 mb-2">核心技能 (关键词)</label>
+                                <FormField
+                                    label="团队现状"
+                                    importance="medium"
+                                    hint="帮助推导岗位需要补充的能力缺口"
+                                >
+                                    <textarea
+                                        name="teamStatus"
+                                        value={formData.teamStatus}
+                                        onChange={handleChange}
+                                        placeholder="例如：目前PM兼顾运营，无专职运营人员；研发团队10人，缺少用户侧支持..."
+                                        rows={2}
+                                        className="form-input resize-none"
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    label="核心技能 / 关键词"
+                                    importance="medium"
+                                    hint="指定你期望的关键能力和经验标签"
+                                >
                                     <textarea
                                         name="keyWords"
                                         value={formData.keyWords}
                                         onChange={handleChange}
-                                        placeholder="例如：React, TypeScript, 良好的沟通能力..."
-                                        rows={3}
-                                        className="w-full px-4 py-3 bg-white border border-stone-300 rounded-lg text-stone-900 focus:ring-2 focus:ring-stone-400 focus:border-transparent transition-all resize-none"
-                                        required
+                                        placeholder="例如：用户成功、SOP搭建、数据分析、跨团队协同..."
+                                        rows={2}
+                                        className="form-input resize-none"
                                     />
-                                </div>
+                                </FormField>
 
-                                <div>
-                                    <label className="block text-lg font-medium text-slate-800 mb-2">语气风格</label>
-                                    <select
-                                        name="tone"
-                                        value={formData.tone}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-white border border-stone-300 rounded-lg text-stone-900 focus:ring-2 focus:ring-stone-400 focus:border-transparent transition-all"
-                                    >
-                                        <option value="专业严谨">专业严谨</option>
-                                        <option value="轻松活泼">轻松活泼</option>
-                                        <option value="充满激情">充满激情</option>
-                                        <option value="诚恳实在">诚恳实在</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-lg font-medium text-slate-800 mb-2">大致字数: {formData.numWords}</label>
+                                <FormField
+                                    label="参考对标公司"
+                                    importance="low"
+                                    hint="指定后AI会重点分析这些公司的岗位设置"
+                                >
                                     <input
-                                        type="range"
-                                        name="numWords"
-                                        min="100"
-                                        max="1000"
-                                        step="50"
-                                        value={formData.numWords}
+                                        type="text"
+                                        name="referenceCompanies"
+                                        value={formData.referenceCompanies}
                                         onChange={handleChange}
-                                        className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#b3a08d]"
+                                        placeholder="例如：Anthropic, OpenAI, Notion, 字节跳动"
+                                        className="form-input"
                                     />
-                                </div>
+                                </FormField>
+
+                                <FormField
+                                    label="公司简介"
+                                    importance="low"
+                                    hint="提供公司背景信息，让JD更贴合实际"
+                                >
+                                    <textarea
+                                        name="companyProfile"
+                                        value={formData.companyProfile}
+                                        onChange={handleChange}
+                                        placeholder="简要描述公司的业务方向、产品阶段、团队规模..."
+                                        rows={2}
+                                        className="form-input resize-none"
+                                    />
+                                </FormField>
 
                                 <button
                                     type="submit"
@@ -155,47 +217,114 @@ export default function Home() {
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
-                                            正在生成...
+                                            推演中...
                                         </span>
                                     ) : (
-                                        '生成招聘广告'
+                                        '开始推演'
                                     )}
                                 </button>
                             </form>
                         </div>
 
-                        {/* Right Column: Output (2/3) */}
-                        <div className="p-8 bg-white min-h-[600px] flex flex-col md:col-span-2">
-                            <h2 className="text-2xl font-bold text-stone-800 mb-6 flex items-center">
-                                <span className="mr-2">📝</span> 生成结果
-                            </h2>
+                        {/* Right Column: Steps & Output */}
+                        <div className="p-8 bg-white min-h-[85vh] flex flex-col lg:col-span-2">
 
-                            <div className="flex-1 bg-[#fdfaf3] border border-stone-200 rounded-xl overflow-hidden shadow-inner flex">
-                                {jobDescription ? (
-                                    <textarea
-                                        value={jobDescription}
-                                        onChange={(e) => setJobDescription(e.target.value)}
-                                        className="w-full h-full p-6 bg-transparent text-stone-800 text-lg leading-relaxed resize-none focus:outline-none focus:ring-0"
-                                    />
-                                ) : (
-                                    <div className={`h-full w-full flex flex-col items-center justify-center text-stone-400 ${loading ? 'opacity-100' : ''}`}>
-                                        <div className={loading ? 'animate-float-breathing' : ''}>
-                                            <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                        </div>
-                                        <p>{loading ? '正在制作中...' : '等待生成...'}</p>
+                            {/* Step Progress Bar */}
+                            {(steps.length > 0 || loading) && (
+                                <div className="flex items-center mb-6 gap-2">
+                                    {STEPS_ORDER.map((stepId, idx) => {
+                                        const step = steps.find((s) => s.id === stepId);
+                                        const isComplete = step?.content;
+                                        const isActive = activeStepId === stepId;
+                                        const meta = STEP_META[stepId];
+                                        return (
+                                            <div key={stepId} className="flex items-center flex-1">
+                                                <button
+                                                    onClick={() => { if (step?.content) setActiveStepId(stepId); }}
+                                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all w-full
+                                                        ${isActive ? 'bg-[#b3a08d] text-white shadow-md' : ''}
+                                                        ${isComplete && !isActive ? 'bg-stone-100 text-stone-700 hover:bg-stone-200 cursor-pointer' : ''}
+                                                        ${!isComplete && !isActive ? 'bg-stone-50 text-stone-300' : ''}
+                                                    `}
+                                                    disabled={!isComplete}
+                                                >
+                                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
+                                                        ${isComplete ? 'bg-green-500 text-white' : ''}
+                                                        ${isActive && !isComplete ? 'bg-white text-[#b3a08d] animate-pulse' : ''}
+                                                        ${!isComplete && !isActive ? 'bg-stone-200 text-stone-400' : ''}
+                                                    `}>
+                                                        {isComplete ? '\u2713' : meta.icon}
+                                                    </span>
+                                                    <span className="truncate">{STEP_META[stepId].desc.slice(0, 6)}</span>
+                                                </button>
+                                                {idx < STEPS_ORDER.length - 1 && (
+                                                    <div className={`w-4 h-0.5 flex-shrink-0 ${isComplete ? 'bg-green-300' : 'bg-stone-200'}`} />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Content Area */}
+                            <div className="flex-1 bg-[#fdfaf3] border border-stone-200 rounded-xl overflow-hidden shadow-inner flex flex-col">
+                                {steps.length === 0 && !loading ? (
+                                    <div className="h-full w-full flex flex-col items-center justify-center text-stone-400 p-8">
+                                        <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                        <p className="text-lg mb-2">填写岗位信息，开始AI推演</p>
+                                        <p className="text-sm text-stone-300">AI将通过 需求分析 &rarr; 行业对标 &rarr; JD推演 &rarr; 最终输出 四个步骤生成高质量JD</p>
                                     </div>
-                                )}
+                                ) : viewingStep ? (
+                                    <div className="flex flex-col h-full">
+                                        <div className="px-6 py-4 border-b border-stone-200 bg-white/50 flex items-center justify-between">
+                                            <div>
+                                                <h3 className="font-bold text-stone-800 text-lg">
+                                                    {viewingStep.title}
+                                                </h3>
+                                                <p className="text-sm text-stone-400">{STEP_META[viewingStep.id]?.desc}</p>
+                                            </div>
+                                            {viewingStep.id !== 'output' && viewingStep.content && (
+                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">已完成</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-6">
+                                            {viewingStep.content ? (
+                                                <div className="text-stone-800 leading-relaxed whitespace-pre-wrap text-[15px]">
+                                                    {viewingStep.content}
+                                                </div>
+                                            ) : (
+                                                <div className="h-full flex flex-col items-center justify-center text-stone-400">
+                                                    <div className="animate-float-breathing">
+                                                        <svg className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <p>正在{viewingStep.title}...</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
 
-                            {jobDescription && (
-                                <button
-                                    onClick={() => { navigator.clipboard.writeText(jobDescription); toast.success("已复制到剪贴板") }}
-                                    className="mt-4 w-full py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium rounded-lg transition-colors border border-stone-300"
-                                >
-                                    复制内容
-                                </button>
+                            {/* Copy Button for final JD */}
+                            {finalJD && (
+                                <div className="mt-4 flex gap-3">
+                                    <button
+                                        onClick={() => setActiveStepId('output')}
+                                        className="flex-1 py-3 bg-[#b3a08d] hover:bg-[#a3907d] text-white font-medium rounded-lg transition-colors"
+                                    >
+                                        查看最终JD
+                                    </button>
+                                    <button
+                                        onClick={() => { navigator.clipboard.writeText(finalJD); toast.success("已复制到剪贴板"); }}
+                                        className="flex-1 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium rounded-lg transition-colors border border-stone-300"
+                                    >
+                                        复制JD内容
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -205,6 +334,33 @@ export default function Home() {
                     Powered by antigravity
                 </footer>
             </main>
+        </div>
+    );
+}
+
+function FormField({ label, required, importance, hint, children }: {
+    label: string;
+    required?: boolean;
+    importance: 'high' | 'medium' | 'low';
+    hint: string;
+    children: React.ReactNode;
+}) {
+    const badges: Record<string, { text: string; color: string }> = {
+        high: { text: '重要', color: 'bg-red-100 text-red-600' },
+        medium: { text: '推荐', color: 'bg-amber-100 text-amber-600' },
+        low: { text: '可选', color: 'bg-stone-100 text-stone-500' },
+    };
+    const badge = badges[importance];
+
+    return (
+        <div>
+            <label className="flex items-center gap-2 text-base font-medium text-slate-800 mb-1.5">
+                {label}
+                {required && <span className="text-red-400">*</span>}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${badge.color}`}>{badge.text}</span>
+            </label>
+            <p className="text-xs text-stone-400 mb-1.5">{hint}</p>
+            {children}
         </div>
     );
 }
