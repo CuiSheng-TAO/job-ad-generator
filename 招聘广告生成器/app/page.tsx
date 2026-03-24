@@ -115,10 +115,10 @@ export default function Home() {
                 </p>
 
                 <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100">
-                    <div className="grid grid-cols-1 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1">
 
                         {/* Left Column: Input Form - no scroll, full height */}
-                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:col-span-1">
+                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:col-span-1 lg:row-span-1">
                             <h2 className="text-2xl font-bold text-stone-800 mb-6 flex items-center">
                                 <span className="mr-2 text-xl">&#9998;</span> 岗位信息
                             </h2>
@@ -253,8 +253,8 @@ export default function Home() {
                             </form>
                         </div>
 
-                        {/* Right Column: Steps & Output - fixed height with internal scroll */}
-                        <div className="p-8 bg-white flex flex-col lg:col-span-2 lg:max-h-[85vh]">
+                        {/* Right Column: Steps & Output - stretch to match left, internal scroll */}
+                        <div className="p-8 bg-white flex flex-col lg:col-span-2 lg:row-span-1 overflow-hidden">
 
                             {/* Step Progress Bar */}
                             {(steps.length > 0 || loading) && (
