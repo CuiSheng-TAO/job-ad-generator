@@ -114,11 +114,11 @@ export default function Home() {
                     AI-Powered Job Description Reasoning Engine
                 </p>
 
-                <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100 h-[85vh]">
-                    <div className="flex flex-col lg:flex-row h-full">
+                <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100">
+                    <div className="grid grid-cols-1 lg:grid-cols-3">
 
                         {/* Left Column: Input Form - no scroll, full height */}
-                        <div className="p-6 bg-[#f7f1e6] border-r border-stone-100 lg:w-1/3 flex-shrink-0 overflow-y-auto scrollbar-visible">
+                        <div className="p-6 bg-[#f7f1e6] border-r border-stone-100 lg:col-span-1">
                             <h2 className="text-xl font-bold text-stone-800 mb-4 flex items-center">
                                 <span className="mr-2 text-lg">&#9998;</span> 岗位信息
                             </h2>
@@ -254,7 +254,7 @@ export default function Home() {
                         </div>
 
                         {/* Right Column: Steps & Output - constrained by left height, internal scroll */}
-                        <div className="p-8 bg-white flex flex-col lg:w-2/3 overflow-hidden">
+                        <div className="p-6 bg-white flex flex-col lg:col-span-2 min-h-0 overflow-hidden">
 
                             {/* Step Progress Bar */}
                             {(steps.length > 0 || loading) && (
