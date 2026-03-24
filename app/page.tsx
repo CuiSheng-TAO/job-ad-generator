@@ -253,8 +253,8 @@ export default function Home() {
                             </form>
                         </div>
 
-                        {/* Right Column: Steps & Output - matches left height, content scrolls */}
-                        <div className="p-8 bg-white flex flex-col lg:col-span-2">
+                        {/* Right Column: Steps & Output - fixed height with internal scroll */}
+                        <div className="p-8 bg-white flex flex-col lg:col-span-2 lg:max-h-[85vh]">
 
                             {/* Step Progress Bar */}
                             {(steps.length > 0 || loading) && (
