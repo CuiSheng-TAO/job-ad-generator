@@ -253,8 +253,9 @@ export default function Home() {
                             </form>
                         </div>
 
-                        {/* Right Column: Steps & Output - constrained by left height, internal scroll */}
-                        <div className="p-6 bg-white flex flex-col lg:col-span-2 min-h-0 overflow-hidden">
+                        {/* Right Column: relative container, absolute inner for scroll */}
+                        <div className="lg:col-span-2 relative">
+                        <div className="lg:absolute lg:inset-0 p-6 bg-white flex flex-col overflow-hidden">
 
                             {/* Step Progress Bar */}
                             {(steps.length > 0 || loading) && (
@@ -366,6 +367,7 @@ export default function Home() {
                                     </button>
                                 </div>
                             )}
+                        </div>
                         </div>
                     </div>
                 </div>
