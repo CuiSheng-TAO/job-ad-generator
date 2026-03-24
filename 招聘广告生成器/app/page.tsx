@@ -371,7 +371,7 @@ export default function Home() {
                 </div>
 
                 <footer className="mt-12 text-stone-500 font-serif text-sm">
-                    Powered by antigravity
+                    powered by Claude code
                 </footer>
             </main>
         </div>
