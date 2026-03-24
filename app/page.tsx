@@ -362,10 +362,10 @@ export default function Home() {
                             {finalJD && (
                                 <div className="mt-4 flex gap-3 flex-shrink-0">
                                     <button
-                                        onClick={() => { userSelectedRef.current = true; setViewingStepId('output'); }}
+                                        onClick={() => { document.querySelector('form')?.requestSubmit(); }}
                                         className="flex-1 py-3 bg-[#b3a08d] hover:bg-[#a3907d] text-white font-medium rounded-lg transition-colors"
                                     >
-                                        查看最终JD
+                                        重新生成
                                     </button>
                                     <button
                                         onClick={() => { navigator.clipboard.writeText(finalJD); toast.success("已复制到剪贴板"); }}
