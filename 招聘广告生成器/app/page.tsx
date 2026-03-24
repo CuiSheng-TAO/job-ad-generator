@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { generateJobDescription, GenerationStep, JDFormData } from '../utils/openai';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -22,6 +22,22 @@ export default function Home() {
     const currentGeneratingStepRef = useRef<string | null>(null);
     // Track if user has manually selected a step
     const userSelectedRef = useRef(false);
+    const leftColRef = useRef<HTMLDivElement>(null);
+    const rightColRef = useRef<HTMLDivElement>(null);
+
+    // Sync right column height to left column
+    useEffect(() => {
+        const syncHeight = () => {
+            if (leftColRef.current && rightColRef.current) {
+                const leftH = leftColRef.current.offsetHeight;
+                rightColRef.current.style.maxHeight = `${leftH}px`;
+            }
+        };
+        syncHeight();
+        const observer = new ResizeObserver(syncHeight);
+        if (leftColRef.current) observer.observe(leftColRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     const [formData, setFormData] = useState<JDFormData>({
         jobTitle: '',
@@ -115,10 +131,10 @@ export default function Home() {
                 </p>
 
                 <div className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1">
+                    <div className="grid grid-cols-1 lg:grid-cols-3">
 
                         {/* Left Column: Input Form - no scroll, full height */}
-                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:col-span-1 lg:row-span-1">
+                        <div ref={leftColRef} className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:col-span-1">
                             <h2 className="text-2xl font-bold text-stone-800 mb-6 flex items-center">
                                 <span className="mr-2 text-xl">&#9998;</span> 岗位信息
                             </h2>
@@ -253,8 +269,8 @@ export default function Home() {
                             </form>
                         </div>
 
-                        {/* Right Column: Steps & Output - stretch to match left, internal scroll */}
-                        <div className="p-8 bg-white flex flex-col lg:col-span-2 lg:row-span-1 overflow-hidden">
+                        {/* Right Column: Steps & Output - height synced to left, internal scroll */}
+                        <div ref={rightColRef} className="p-8 bg-white flex flex-col lg:col-span-2 overflow-hidden">
 
                             {/* Step Progress Bar */}
                             {(steps.length > 0 || loading) && (
