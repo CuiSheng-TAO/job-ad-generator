@@ -4,6 +4,9 @@ import './globals.css';
 export const metadata: Metadata = {
     title: '招聘广告生成器',
     description: '快速生成专业招聘广告',
+    icons: {
+        icon: '/favicon.ico',
+    },
 };
 
 export default function RootLayout({

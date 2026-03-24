@@ -108,7 +108,7 @@ export default function Home() {
 
             <main className="flex flex-col items-center w-full max-w-7xl">
                 <h1 className="text-5xl font-bold text-stone-800 mb-2 font-kaiti">
-                    招聘JD<span className="text-[#b3a08d]">推演器</span>
+                    招聘广告<span className="text-[#b3a08d]">生成器</span>
                 </h1>
                 <p className="text-xl text-stone-600 mb-10 font-serif italic">
                     AI-Powered Job Description Reasoning Engine
@@ -332,9 +332,17 @@ export default function Home() {
                                         </div>
                                         <div className="flex-1 overflow-y-auto p-6 min-h-0 scrollbar-visible">
                                             {viewingStep.content ? (
-                                                <div className="text-stone-800 leading-relaxed whitespace-pre-wrap text-[15px]">
-                                                    {viewingStep.content}
-                                                </div>
+                                                viewingStep.id === 'output' && viewingStep.done ? (
+                                                    <textarea
+                                                        value={finalJD}
+                                                        onChange={(e) => setFinalJD(e.target.value)}
+                                                        className="w-full h-full bg-transparent text-stone-800 leading-relaxed text-[15px] resize-none focus:outline-none"
+                                                    />
+                                                ) : (
+                                                    <div className="text-stone-800 leading-relaxed whitespace-pre-wrap text-[15px]">
+                                                        {viewingStep.content}
+                                                    </div>
+                                                )
                                             ) : (
                                                 <div className="h-full flex flex-col items-center justify-center text-stone-400">
                                                     <div className="animate-float-breathing">
