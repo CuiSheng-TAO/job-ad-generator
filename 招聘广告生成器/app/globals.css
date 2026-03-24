@@ -38,3 +38,22 @@ input:focus {
     @apply w-full px-4 py-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 text-sm focus:ring-2 focus:ring-stone-400 focus:border-transparent transition-all;
   }
 }
+
+/* 始终显示滚动条 */
+.scrollbar-visible::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background-color: rgba(168, 162, 158, 0.4);
+  border-radius: 3px;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(168, 162, 158, 0.6);
+}
+.scrollbar-visible {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 162, 158, 0.4) transparent;
+}

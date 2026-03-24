@@ -118,11 +118,11 @@ export default function Home() {
                     <div className="flex flex-col lg:flex-row h-full">
 
                         {/* Left Column: Input Form - no scroll, full height */}
-                        <div className="p-8 bg-[#f7f1e6] border-r border-stone-100 lg:w-1/3 flex-shrink-0 overflow-y-auto">
-                            <h2 className="text-2xl font-bold text-stone-800 mb-6 flex items-center">
-                                <span className="mr-2 text-xl">&#9998;</span> 岗位信息
+                        <div className="p-6 bg-[#f7f1e6] border-r border-stone-100 lg:w-1/3 flex-shrink-0 overflow-y-auto scrollbar-visible">
+                            <h2 className="text-xl font-bold text-stone-800 mb-4 flex items-center">
+                                <span className="mr-2 text-lg">&#9998;</span> 岗位信息
                             </h2>
-                            <form onSubmit={handleSubmit} className="space-y-5">
+                            <form onSubmit={handleSubmit} className="space-y-3">
 
                                 <FormField
                                     label="职位名称"
@@ -168,7 +168,7 @@ export default function Home() {
                                         value={formData.painPoints}
                                         onChange={handleChange}
                                         placeholder="例如：运营能力薄弱，用户付费率和留存率偏低；客服体系缺失，大客户服务跟不上..."
-                                        rows={3}
+                                        rows={2}
                                         className="form-input resize-none"
                                     />
                                 </FormField>
@@ -236,7 +236,7 @@ export default function Home() {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full py-4 px-6 bg-[#b3a08d] hover:bg-[#a3907d] text-white font-bold text-lg rounded-xl shadow-lg transform transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full py-3 px-6 bg-[#b3a08d] hover:bg-[#a3907d] text-white font-bold text-base rounded-xl shadow-lg transform transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
                                         <span className="flex items-center justify-center">
@@ -329,7 +329,7 @@ export default function Home() {
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="flex-1 overflow-y-auto p-6 min-h-0">
+                                        <div className="flex-1 overflow-y-auto p-6 min-h-0 scrollbar-visible">
                                             {viewingStep.content ? (
                                                 <div className="text-stone-800 leading-relaxed whitespace-pre-wrap text-[15px]">
                                                     {viewingStep.content}
